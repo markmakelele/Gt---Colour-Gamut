@@ -36,7 +36,7 @@ button:focus-visible,input:focus-visible,.drop:focus-visible{outline:1px solid v
 .brandbar{min-height:116px}
 .wordmark{display:flex;align-items:center;padding:0 17px;font-size:38px;letter-spacing:-2.5px;font-weight:200;white-space:nowrap}
 .wordmark strong{font-weight:600;margin-left:7px;letter-spacing:-2.4px}
-.monogram{display:flex;align-items:center;padding:0 10px;font-size:88px;line-height:.82;letter-spacing:-8px;font-weight:600}
+.monogram{display:flex;align-items:center;justify-content:center;padding:0;font-size:88px;line-height:.82;letter-spacing:-8px;font-weight:600}
 .monogram span{font-size:0}
 .tagline{display:flex;align-items:center;padding:0 27px;font-size:19px;line-height:1.08;font-weight:300;letter-spacing:-.45px}
 .modebutton{width:100%;height:100%;padding:0 10px;text-align:left;font-weight:300}
@@ -61,11 +61,9 @@ button:focus-visible,input:focus-visible,.drop:focus-visible{outline:1px solid v
 
 .sampling{height:64px}
 .sampling-label,.sampling-value{display:flex;align-items:center;justify-content:center;text-align:center;padding:0 10px;font-size:17px;line-height:1.1;font-weight:300}
-.sampling-control{display:flex;align-items:center;padding:0 8px}
+.sampling-control{display:flex;align-items:center;padding:0 12px}
 .sampling-control input{width:100%;accent-color:var(--accent)}
-.sampling-control::before,.sampling-control::after{font-size:31px;font-weight:200;line-height:0}
-.sampling-control::before{content:"[";margin-right:7px}
-.sampling-control::after{content:"]";margin-left:7px}
+
 .sampling-value{justify-content:center;text-align:center}
 
 .workspace{display:grid;grid-template-columns:minmax(0,1fr) 155px;min-height:680px}
@@ -183,8 +181,8 @@ body{overflow-x:hidden}
 .instructions-toggle{width:100%;min-height:32px;padding:6px 10px;display:flex;align-items:center;justify-content:space-between;font-size:12px;line-height:1;font-weight:300}
 .instructions-toggle span:last-child{font-size:18px;font-weight:200;transition:transform .28s cubic-bezier(.22,1,.36,1)}
 .instruction-panel{max-height:0;overflow:hidden;display:grid;grid-template-columns:repeat(4,1fr);border-top:0 solid var(--line);opacity:0;transition:max-height .42s cubic-bezier(.22,1,.36,1),opacity .24s ease,border-top-width .2s ease}
-.instructions:hover .instruction-panel,.instructions.open .instruction-panel,.instructions:focus-within .instruction-panel{max-height:130px;opacity:1;border-top-width:1px}
-.instructions:hover .instructions-toggle span:last-child,.instructions.open .instructions-toggle span:last-child,.instructions:focus-within .instructions-toggle span:last-child{transform:rotate(45deg)}
+.instructions.open .instruction-panel{max-height:130px;opacity:1;border-top-width:1px}
+.instructions.open .instructions-toggle span:last-child{transform:rotate(45deg)}
 .instruction-panel span{min-height:66px;padding:12px 10px;border-right:1px solid var(--line);font-size:11px;line-height:1.35;font-weight:300}
 .instruction-panel span:last-child{border-right:0}.instruction-panel b{font-weight:600;margin-right:6px}
 button,.rail-tab,.modebutton,.upload-icon,.hex-copy,.primary-light,.actions button{transition:background-color .22s cubic-bezier(.22,1,.36,1),color .22s cubic-bezier(.22,1,.36,1),border-color .22s cubic-bezier(.22,1,.36,1),transform .22s cubic-bezier(.22,1,.36,1),opacity .22s ease}
@@ -232,6 +230,13 @@ html[data-theme="dark"] .oai-blossom-black{display:none}html[data-theme="dark"] 
  body{font-size:14px}.grid{grid-template-columns:1fr 62px}.brandbar,.uploadrow{grid-template-columns:1fr 62px}.sampling{grid-template-columns:62px 1fr}.upload-title{padding:12px;font-size:19px}.monogram{font-size:42px}
  .rail{grid-template-rows:120px minmax(170px,auto) auto}.rail-tab{font-size:13px}.actions{grid-template-columns:1fr}.actions button{min-height:48px;border-right:0;border-bottom:1px solid var(--line)!important}.actions button:last-child{border-bottom:0!important}
  .footer{padding:13px 10px}.openai-credit,.maker-credit{font-size:10px}
+}
+
+@media(max-width:640px){
+ .brandbar .monogram{justify-content:center;align-items:center;text-align:center;padding:0}
+ .sampling-control{padding:0 14px}
+ .sampling-control input{display:block;width:100%;margin:0}
+ .instructions-toggle{cursor:pointer;-webkit-tap-highlight-color:transparent}
 }
 </style></head><body>
 <div class="instructions" id="instructions" tabindex="0" aria-label="Gamut instructions">
@@ -511,8 +516,6 @@ function updateRail(which){
 }
 const A=["Velvet","Moss","Midnight","Bone","Harbour","Ember","Cedar","Dusk","Salt","Orchard","Lacquer","Fern","Claret","Parchment"],N=["Lounge","Drive","Atlas","Parlour","Study","Gallery","Hour","Garden","Line","Room"];
 const pick=a=>a[Math.floor(Math.random()*a.length)];
-$("sg").onclick=()=>{$("nm").value=pick(A)+" "+pick(N);updateRail("name")};
-$("cl").onclick=()=>{tray.slice().forEach(toggle);$("nm").value="";renderTray();updateRail("palette")};
 try{saved=JSON.parse(localStorage.getItem("gamut-combos")||"[]")}catch(e){}
 function store(){try{localStorage.setItem("gamut-combos",JSON.stringify(saved))}catch(e){}}
 const slug=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"combo";
