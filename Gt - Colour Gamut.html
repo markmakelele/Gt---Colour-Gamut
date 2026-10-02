@@ -62,7 +62,8 @@ button:focus-visible,input:focus-visible,.drop:focus-visible{outline:1px solid v
 .sampling{height:64px}
 .sampling-label,.sampling-value{display:flex;align-items:center;justify-content:center;text-align:center;padding:0 10px;font-size:17px;line-height:1.1;font-weight:300}
 .sampling-control{display:flex;align-items:center;padding:0 12px}
-.sampling-control input{width:100%;accent-color:var(--accent)}
+.sampling-control input{width:min(100%,240px);accent-color:var(--accent)}
+.sampling-control datalist{display:none}
 
 .sampling-value{justify-content:center;text-align:center}
 
@@ -285,7 +286,7 @@ html[data-theme="dark"] .oai-blossom-black{display:none}html[data-theme="dark"] 
   <section class="grid sampling">
     <div class="cell sampling-label">Sampling</div>
     <div class="cell sampling-control" style="grid-column:2 / 4">
-      <input id="bl" type="range" min="0" max="3" value="0" aria-label="Sampling">
+      <input id="bl" type="range" min="0" max="3" step="1" value="0" list="samplingSteps" aria-label="Sampling"><datalist id="samplingSteps"><option value="0" label="Fine"></option><option value="1" label="Balanced"></option><option value="2" label="Grouped"></option><option value="3" label="Blocky"></option></datalist>
     </div>
     <div class="cell sampling-value"><span id="sampleLabel">Fine</span></div>
   </section>
@@ -389,13 +390,26 @@ function sample(img,w,h){
  for(let i=0;i<D.length;i+=4)o.push([D[i],D[i+1],D[i+2]]);
  return o
 }
+function accentPass(P,base){
+ const accents=P.filter(p=>{const [,sat,light]=hsl(p);return sat>.48&&light>.22&&light<.88});
+ if(accents.length<10)return base;
+ const k=Math.min(4,Math.max(2,Math.floor(accents.length/24)));
+ const candidates=km(accents,k),out=base.slice();
+ for(const c of candidates){
+  const cr=rgb(c.hex);
+  if(out.some(o=>d2(cr,rgb(o.hex))<45*45))continue;
+  const n=P.reduce((sum,p)=>sum+(d2(p,cr)<52*52?1:0),0);
+  if(n>=Math.max(3,Math.round(P.length*.0025)))out.push({...c,n,pct:+(100*n/P.length).toFixed(1),g:fam(cr),accent:true});
+ }
+ return out.sort((a,b)=>b.n-a.n);
+}
 function analyze(img){$("emptyState").classList.add("hidden");
- const w=72,h=Math.max(8,Math.round(w*img.naturalHeight/img.naturalWidth)),P=sample(img,w,h),tot=P.length;
+ const w=112,h=Math.max(10,Math.round(w*img.naturalHeight/img.naturalWidth)),P=sample(img,w,h),tot=P.length;
  const ch=P.filter(p=>fam(p)!=="Neutrals"),ne=P.filter(p=>fam(p)==="Neutrals");
  const mk=(a,k)=>km(a,k).map(o=>({...o,pct:+(100*o.n/tot).toFixed(1)}));
- pal=mk(ch,12).concat(mk(ne,6)).sort((a,b)=>b.n-a.n);
+ pal=accentPass(P,mk(ch,14).concat(mk(ne,6)));
  bg=km(P.slice(0,Math.floor(tot*.27)),5).map(o=>({...o,pct:+(100*o.n/Math.floor(tot*.27)).toFixed(1)})).sort((a,b)=>b.n-a.n);
- W=72;H=Math.max(8,Math.round(W*img.naturalHeight/img.naturalWidth));px=sample(img,W,H);tray=[];gsel="All";
+ W=112;H=Math.max(10,Math.round(W*img.naturalHeight/img.naturalWidth));px=sample(img,W,H);tray=[];gsel="All";selectedHex=null;cancelAnimationFrame(highlightRAF);
  renderResults();drawCv();updateRail("palette");
  setStatus(`${pal.length} colours extracted`);
 }
@@ -417,12 +431,23 @@ function renderTray(){
 }
 function toggle(h){
  const i=tray.indexOf(h);
- if(i>=0)tray.splice(i,1);else if(tray.length<6)tray.push(h);
+ if(i>=0){
+  tray.splice(i,1);
+  if(selectedHex===h){selectedHex=null;cancelAnimationFrame(highlightRAF)}
+ }else if(tray.length<6)tray.push(h);
  document.querySelectorAll(`.sw[data-h="${h}"]`).forEach(b=>b.classList.toggle("in",tray.includes(h)));
  renderTray();drawCv();updateRail("palette")
 }
 document.addEventListener("click",e=>{
- const b=e.target.closest(".sw");if(b)toggle(b.dataset.h)
+ const b=e.target.closest(".sw");
+ if(b){
+  const wasSelected=selectedHex===b.dataset.h;
+  toggle(b.dataset.h);
+  if(!wasSelected){
+   const r=cv.getBoundingClientRect();
+   if(H&&r.width&&r.height)startSimilarHighlight(b.dataset.h,{x:r.width/2,y:r.height/2});
+  }
+ }
 });
 function applyG(){document.querySelectorAll(".sw").forEach(b=>b.dataset.dim=gsel!=="All"&&b.dataset.g!==gsel?"1":"")}
 function nearest(c){
@@ -472,7 +497,12 @@ cv.addEventListener("pointerdown",e=>{
  if(!H)return;
  const r=cv.getBoundingClientRect(),x=Math.min(W-1,Math.max(0,Math.floor((e.clientX-r.left)/r.width*W))),y=Math.min(H-1,Math.max(0,Math.floor((e.clientY-r.top)/r.height*H)));
  const n=nearest(px[y*W+x]);
- if(n){toggle(n.hex);startSimilarHighlight(n.hex,{x:e.clientX-r.left,y:e.clientY-r.top})}
+ if(n){
+  const wasSelected=selectedHex===n.hex;
+  toggle(n.hex);
+  if(wasSelected)return;
+  startSimilarHighlight(n.hex,{x:e.clientX-r.left,y:e.clientY-r.top});
+ }
 });
 $("bl").oninput=e=>{blur=+e.target.value;$("sampleLabel").textContent=["Fine","Balanced","Grouped","Blocky"][blur];drawCv()};
 const drop=$("drop"),up=$("up");
