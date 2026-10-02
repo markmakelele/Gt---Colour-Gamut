@@ -477,15 +477,42 @@ cv.addEventListener("pointerdown",e=>{
 $("bl").oninput=e=>{blur=+e.target.value;$("sampleLabel").textContent=["Fine","Balanced","Grouped","Blocky"][blur];drawCv()};
 const drop=$("drop"),up=$("up");
 function setStatus(t){$("status").textContent=t}
-function setFile(f){$("emptyState").classList.add("hidden");
- if(!f||!f.type.startsWith("image/"))return;
- currentFile=f;if(currentSrc)URL.revokeObjectURL(currentSrc);currentSrc=URL.createObjectURL(f);
- $("fileName").textContent=f.name;$("fileMeta").textContent=`${Math.round(f.size/1024)} KB · ${f.type.replace("image/","").toUpperCase()}`;
- $("dropTitle").textContent="Photo selected";$("dropMeta").textContent="Ready to extract its colours";
+function setFile(f){
+ $("emptyState").classList.add("hidden");
+ if(!f||!f.type.startsWith("image/")){setStatus("Please choose a PNG or JPEG image.");return}
+ currentFile=f;
+ if(currentSrc){try{URL.revokeObjectURL(currentSrc)}catch(e){}}
+ currentSrc=null;
+ pal=[];bg=[];px=[];tray=[];renderTray();
+ $("fileName").textContent=f.name;
+ $("fileMeta").textContent=`${Math.round(f.size/1024)} KB · ${f.type.replace("image/","").toUpperCase()}`;
+ $("dropTitle").textContent="Photo selected";
+ $("dropMeta").textContent="Ready to extract its colours";
  setStatus("Photo loaded. Extracting its colours…");
- const i=new Image;
- i.onload=()=>{analyze(i);setStatus(`${pal.length} colours extracted · click the image or palette swatches to select up to 6.`)};
- i.src=currentSrc
+
+ const i=new Image();
+ i.decoding="async";
+ i.onload=()=>{
+   try{
+     analyze(i);
+     setStatus(`${pal.length} colours extracted · click the image or palette swatches to select up to 6.`);
+   }catch(err){
+     console.error("Colour extraction failed:",err);
+     setStatus("Colour extraction failed. Please try another image.");
+   }
+ };
+ i.onerror=()=>{
+   console.error("Image decode failed.");
+   setStatus("Could not read this image. Please try another PNG or JPEG.");
+ };
+
+ const reader=new FileReader();
+ reader.onload=()=>{i.src=reader.result};
+ reader.onerror=()=>{
+   console.error("File read failed:",reader.error);
+   setStatus("Could not read this file.");
+ };
+ reader.readAsDataURL(f);
 }
 up.onchange=e=>setFile(e.target.files[0]);
 $("upb").onclick=e=>{e.stopPropagation();up.click()};$("replace").onclick=()=>up.click();
